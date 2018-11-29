@@ -80,7 +80,7 @@ If you want to publish information to some service but you don't want to wait yo
 Quick start
 -----------
 
-1. Run `pip install django-simple-services`
+1. Run `pip install django-easy-services`
 
 2. Add "services" to your INSTALLED_APPS setting like this::
 
