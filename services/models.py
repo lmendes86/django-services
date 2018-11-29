@@ -30,14 +30,16 @@ class Service(models.Model):
     def __str__(self):
         return self.name
 
-    async def request_async_task(self, debug=False, current_retry=1, max_retry=10, retry_interval=1,
+    async def request_async_task(self, debug=False, max_retry=10, retry_interval=1,
                                  header_data=None, get_data=None, url_data=None, parse_data=None, parameters=None):
         service_response = self.request_recursive(debug=debug, header_data=header_data, get_data=get_data,
                                                   url_data=url_data, parse_data=parse_data,
                                                   parameters=parameters)
-        while not service_response['success'] and max_retry < current_retry:
+        current_try = 1
+        while not service_response['success'] and (max_retry == 0 or max_retry < current_try):
             time.sleep(retry_interval)
-            current_retry += 1
+            if max_retry != 0:
+                current_try += 1
             service_response = self.request_recursive(debug=debug, header_data=header_data,
                                                       get_data=get_data,
                                                       url_data=url_data, parse_data=parse_data,
@@ -137,7 +139,7 @@ class Service(models.Model):
                 response = result.json()
             except:
                 response = {}
-            if result.status_code not in (requests.codes.ok, requests.codes.accepted):
+            if result.status_code >= 400:
                 response = {"result": "error", "success": False, "content": response, "code": result.status_code,
                             "elapsed": result.elapsed.seconds + result.elapsed.microseconds / 1000000.0}
             else:
