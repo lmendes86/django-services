@@ -15,7 +15,7 @@ Example::
 
        if service_response['success']:
            respose_content = service_response['content'] # content is a dict
-           print (response_content)
+           print(response_content)
 
 
 
