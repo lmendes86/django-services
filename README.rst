@@ -2,7 +2,7 @@
 Services
 ========
 
-Services is a simple Django app to consume simple json services in a simple way. 
+Services is a simple Django app to consume simple json services in a simple way.
 You can make requests directly, async or recursive using failover services 
 automatically while the services return errors.
 Example::
@@ -80,15 +80,16 @@ If you want to publish information to some service but you don't want to wait yo
 Quick start
 -----------
 
-1. Add "services" to your INSTALLED_APPS setting like this::
+1. Run `pip install django-simple-services`
+
+2. Add "services" to your INSTALLED_APPS setting like this::
 
        INSTALLED_APPS = [
                ...
                'services',
        ]
 
-2. Run `python manage.py migrate` to create the services models.
+3. Run `python manage.py migrate` to create the services models.
 
-3. Start the development server and visit http://127.0.0.1:8000/admin/services
+4. Start the development server and visit http://127.0.0.1:8000/admin/services
    to create a services (you'll need the Admin app enabled).
-
