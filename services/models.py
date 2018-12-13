@@ -19,6 +19,7 @@ class Service(models.Model):
     url = models.URLField(max_length=200, default='')
     method = models.CharField(max_length=20, choices=METHOD_CHOICES, default='get')
     timeout = models.IntegerField(blank=True, null=True, default=None)
+    verify = models.BooleanField(default=True)
     headers = models.TextField(blank=True, default='')
     parameters = models.TextField(blank=True, default='')
     service_failover = models.ManyToManyField("self", through='ServiceFailover', symmetrical=False,
@@ -125,16 +126,16 @@ class Service(models.Model):
             timeout = 10
         try:
             if self.method == 'post':
-                result = requests.post(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=False)
+                result = requests.post(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=self.verify)
             elif self.method == 'get':
                 data = urllib.parse.urlencode(data)
                 if data:
                     url = url + '?' + data
-                result = requests.get(url, headers=headers, timeout=timeout, verify=False)
+                result = requests.get(url, headers=headers, timeout=timeout, verify=self.verify)
             elif self.method == 'patch':
-                result = requests.patch(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=False)
+                result = requests.patch(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=self.verify)
             elif self.method == 'put':
-                result = requests.put(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=False)
+                result = requests.put(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=self.verify)
             try:
                 response = result.json()
             except:

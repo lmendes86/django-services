@@ -21,7 +21,7 @@ Post example::
 
        from services.models import Service
 
-       service_example = Service(name='simple_service', method='post', url='http://example.com/', headers='{"Content-Type": "<content_type>"'}, parameters= '{"query_param": "<data>"}')
+       service_example = Service(name='simple_service', method='post', url='http://example.com/', headers='{"Content-Type": "<content_type>"}', parameters= '{"query_param": "<data>"}')
        get_data = {'<data>': 'example_data'}
        header_data = {'<content_type>': 'application/json'}
        service_response = service_example.request(get_data=get_data, header_data=header_data)
@@ -36,7 +36,7 @@ Or simpler::
        from services.models import Service
 
        # This headers will be use for every request to this service
-       service_example = Service(name='simple_service', method='post', url='http://example.com/', headers='{"Content-Type": "application/json"'})
+       service_example = Service(name='simple_service', method='post', url='http://example.com/', headers='{"Content-Type": "application/json"}')
        # parameters will be put directly to the body of the post request to the service
        parameters = {'query_param': 'example_data'}
        service_response = service_example.request(parameters=parameters)
@@ -70,7 +70,7 @@ If you want to publish information to some service but you don't want to wait yo
 
        from services.models import Service
 
-       service_example = Service(name='simple_service', method='post', url='http://example.com/', headers='{"Content-Type": "application/json"'})
+       service_example = Service(name='simple_service', method='post', url='http://example.com/', headers='{"Content-Type": "application/json"}')
        parameters = {'query_param': 'example_data'}
        # max_retry is the amount of retries do you want to execute the request while the answer is a error (0 if you want to retry "forever").
        # retry_interval is the amount of seconds you want to wait between retries.
