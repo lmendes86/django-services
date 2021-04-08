@@ -3,6 +3,7 @@ import time
 import urllib
 
 import asyncio
+import multiselectfield
 import requests
 
 from django.db import models
@@ -10,11 +11,22 @@ from django.db import models
 
 class Service(models.Model):
     METHOD_CHOICES = (
+        (u'delete', u'delete'),
         (u'get', u'get'),
         (u'post', u'post'),
         (u'patch', u'patch'),
         (u'put', u'put'),
     )
+    codes = sorted(list(set([a if isinstance(a, int) else 100 for a in requests.codes.__dict__.values()])))
+    ACCEPTED_CODE_CHOICES = []
+    for code in codes:
+        if code >= 400:
+            ACCEPTED_CODE_CHOICES.append((code, code))
+    REJECTED_CODE_CHOICES = []
+    for code in codes:
+        if code < 400:
+            REJECTED_CODE_CHOICES.append((code, code))
+
     name = models.CharField(max_length=200, default='', db_index=True)
     url = models.URLField(max_length=200, default='')
     method = models.CharField(max_length=20, choices=METHOD_CHOICES, default='get')
@@ -24,16 +36,23 @@ class Service(models.Model):
     parameters = models.TextField(blank=True, default='')
     service_failover = models.ManyToManyField("self", through='ServiceFailover', symmetrical=False,
                                               related_name='service_failover_relation')
-    debug_url = models.URLField(max_length=200, blank=True, default='')
-    debug_headers = models.TextField(blank=True, default='')
-    debug_parameters = models.TextField(blank=True, default='')
+    accepted_codes = multiselectfield.MultiSelectField(choices=ACCEPTED_CODE_CHOICES, blank=True, default=None)
+    rejected_codes = multiselectfield.MultiSelectField(choices=REJECTED_CODE_CHOICES, blank=True, default=None)
 
     def __str__(self):
         return self.name
 
-    async def request_async_task(self, debug=False, max_retry=10, retry_interval=1,
+    def accept_code(self, code):
+        res = True
+        if code < 400 and str(code) in self.rejected_codes:
+            res = False
+        elif code >= 400 and str(code) not in self.accepted_codes:
+            res = False
+        return res
+
+    async def request_async_task(self, max_retry=10, retry_interval=1,
                                  header_data=None, get_data=None, url_data=None, parse_data=None, parameters=None):
-        service_response = self.request_recursive(debug=debug, header_data=header_data, get_data=get_data,
+        service_response = self.request_recursive(header_data=header_data, get_data=get_data,
                                                   url_data=url_data, parse_data=parse_data,
                                                   parameters=parameters)
         current_try = 1
@@ -41,33 +60,32 @@ class Service(models.Model):
             time.sleep(retry_interval)
             if max_retry != 0:
                 current_try += 1
-            service_response = self.request_recursive(debug=debug, header_data=header_data,
+            service_response = self.request_recursive(header_data=header_data,
                                                       get_data=get_data,
                                                       url_data=url_data, parse_data=parse_data,
                                                       parameters=parameters)
 
-    def request_async(self, debug=False, max_retry=10, retry_interval=1, header_data=None,
+    def request_async(self, max_retry=10, retry_interval=1, header_data=None,
                       get_data=None, url_data=None, parse_data=None, parameters=None):
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.request_async_task(debug=debug, max_retry=max_retry, retry_interval=retry_interval,
+        loop.run_until_complete(self.request_async_task(max_retry=max_retry, retry_interval=retry_interval,
                                                         header_data=header_data, get_data=get_data, url_data=url_data,
                                                         parse_data=parse_data, parameters=parameters))
         loop.close()
 
-    def request_recursive(self, debug=False, header_data=None, get_data=None, url_data=None, parse_data=None,
+    def request_recursive(self, header_data=None, get_data=None, url_data=None, parse_data=None,
                           parameters=None):
-        response = self.request(debug=debug, header_data=header_data, get_data=get_data,
+        response = self.request(header_data=header_data, get_data=get_data,
                                 url_data=url_data, parameters=parameters)
         if response.get('result') == 'OK':
             return response
-        elif self.pk and self.service_failover.count() is not 0:
+        elif self.pk and self.service_failover.count() != 0:
             response_failover_stack = []
             for service_for_failover in self.service_failover.all():
-                response_failover, result_failover = service_for_failover.get_service_data(debug=debug,
-                                                                                           header_data=header_data,
+                response_failover, result_failover = service_for_failover.get_service_data(header_data=header_data,
                                                                                            get_data=get_data,
                                                                                            url_data=url_data,
                                                                                            parse_data=parse_data,
@@ -78,13 +96,10 @@ class Service(models.Model):
             response.update({'failovers': response_failover_stack})
         return response
 
-    def request(self, debug=False, header_data=None, get_data=None, url_data=None, parameters=None):
+    def request(self, header_data=None, get_data=None, url_data=None, parameters=None):
         headers = {}
 
-        if debug and self.debug_headers:
-            service_headers = self.debug_headers
-        else:
-            service_headers = self.headers
+        service_headers = self.headers
 
         if service_headers:
             headers = json.loads(service_headers)
@@ -93,10 +108,7 @@ class Service(models.Model):
                     headers[headers_key] = header_data[headers[headers_key]]
 
         data = {}
-        if debug and self.debug_parameters:
-            service_parameters = self.debug_parameters
-        else:
-            service_parameters = self.parameters
+        service_parameters = self.parameters
 
         if service_parameters:
             data = json.loads(service_parameters)
@@ -106,10 +118,7 @@ class Service(models.Model):
         elif parameters:
             data = parameters
 
-        if debug and self.debug_url:
-            service_url = self.debug_url
-        else:
-            service_url = self.url
+        service_url = self.url
 
         if url_data:
             for url_data_key in url_data:
@@ -136,11 +145,16 @@ class Service(models.Model):
                 result = requests.patch(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=self.verify)
             elif self.method == 'put':
                 result = requests.put(url, data=json.dumps(data), headers=headers, timeout=timeout, verify=self.verify)
+            elif self.method == 'delete':
+                data = urllib.parse.urlencode(data)
+                if data:
+                    url = url + '?' + data
+                result = requests.delete(url, headers=headers, timeout=timeout, verify=self.verify)
             try:
                 response = result.json()
             except:
                 response = {}
-            if result.status_code >= 400:
+            if not self.accept_code(result.status_code):
                 response = {"result": "error", "success": False, "content": response, "code": result.status_code,
                             "elapsed": result.elapsed.seconds + result.elapsed.microseconds / 1000000.0}
             else:
