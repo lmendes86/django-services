@@ -2,7 +2,7 @@
 Services
 ========
 
-Services is a simple Django app to consume simple json services in a simple way.
+Services is a simple Django app to consume json services in a simple way.
 You can make requests directly, async or recursive using failover services 
 automatically while the services return errors.
 Example::
@@ -13,8 +13,10 @@ Example::
        url_data = {'<data>': 'example_data'}
        service_response = service_example.request(url_data=get_data)
 
+       # By default http responses higher than 400 are not consider as successful,
+       # this can we tweaked in the service instance by adding codes to accepted_codes or rejected_codes.
        if service_response['success']:
-           respose_content = service_response['content'] # content is a dict
+           response_content = service_response['content'] # content is a dict
            print(response_content)
 
 Post example::
@@ -27,7 +29,7 @@ Post example::
        service_response = service_example.request(get_data=get_data, header_data=header_data)
 
        if service_response['success']:
-           respose_content = service_response['content'] # content is a dict
+           response_content = service_response['content'] # content is a dict
            print(response_content)
 
 Or simpler::
@@ -42,7 +44,7 @@ Or simpler::
        service_response = service_example.request(parameters=parameters)
 
        if service_response['success']:
-           respose_content = service_response['content'] # content is a dict
+           response_content = service_response['content'] # content is a dict
            print(response_content)
 
 You can also configure failover services, so if the primary service return some error code (for now >= 400) the failover/s will we call one by one untill some of them return a non error code::
@@ -63,7 +65,7 @@ You can also configure failover services, so if the primary service return some 
        service_response = service_example.request_recursive(url_data=get_data)
 
        if service_response['success']:
-           respose_content = service_response['content'] # content is a dict
+           response_content = service_response['content'] # content is a dict
            print(response_content)
 
 If you want to publish information to some service but you don't want to wait you can make async request::
@@ -92,4 +94,4 @@ Quick start
 3. Run `python manage.py migrate` to create the services models.
 
 4. Start the development server and visit http://127.0.0.1:8000/admin/services
-   to create a services (you'll need the Admin app enabled).
+   to create a service (you'll need the Admin app enabled).

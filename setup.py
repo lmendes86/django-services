@@ -9,10 +9,10 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-easy-services',
-    version='0.2',
+    version='0.3',
     packages=find_packages(),
     include_package_data=True,
-    install_requires=['Django>=1.8', 'requests>=2.20.0', 'asyncio>=3.4.3'],
+    install_requires=['Django>=1.8', 'requests>=2.20.0', 'asyncio>=3.4.3', 'django-multiselectfield>=0.1.12'],
     license='MIT License',
     description='A simple Django app to handle services request.',
     long_description=README,
